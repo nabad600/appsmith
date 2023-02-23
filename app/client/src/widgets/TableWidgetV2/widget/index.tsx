@@ -106,9 +106,144 @@ import { Stylesheet } from "entities/AppTheming";
 import { DateCell } from "../component/cellComponents/DateCell";
 import { MenuItem, MenuItemsSource } from "widgets/MenuButtonWidget/constants";
 import { TimePrecision } from "widgets/DatePickerWidget2/constants";
+import shallowEqual from "shallowequal";
 
 const ReactTableComponent = lazy(() =>
   retryPromise(() => import("../component")),
+);
+
+const getColumnsPureFn = (
+  //frequent rerender
+  renderCell,
+  columnWidthMap = {},
+  orderedTableColumns = [],
+  componentWidth,
+  //not derived?
+  primaryColumns,
+  renderMode,
+  widgetId,
+) => {
+  let columns: ReactTableColumnProps[] = [];
+  const hiddenColumns: ReactTableColumnProps[] = [];
+
+  let totalColumnWidth = 0;
+
+  if (isArray(orderedTableColumns)) {
+    orderedTableColumns.forEach((column: any) => {
+      const isHidden = !column.isVisible;
+
+      const columnData = {
+        id: column.id,
+        Header:
+          column.hasOwnProperty("label") && typeof column.label === "string"
+            ? column.label
+            : DEFAULT_COLUMN_NAME,
+        alias: column.alias,
+        accessor: (row: any) => row[column.alias],
+        width: columnWidthMap[column.id] || DEFAULT_COLUMN_WIDTH,
+        minWidth: COLUMN_MIN_WIDTH,
+        draggable: true,
+        isHidden: false,
+        isAscOrder: column.isAscOrder,
+        isDerived: column.isDerived,
+        sticky: fetchSticky(column.id, primaryColumns, renderMode, widgetId),
+        metaProperties: {
+          isHidden: isHidden,
+          type: column.columnType,
+          format: column.outputFormat || "",
+          inputFormat: column.inputFormat || "",
+        },
+        columnProperties: column,
+        Cell: renderCell,
+      };
+
+      const isAllCellVisible: boolean | boolean[] = column.isCellVisible;
+
+      /*
+       * If all cells are not visible or column itself is not visible,
+       * set isHidden and push it to hiddenColumns array else columns array
+       */
+      if (
+        (isBoolean(isAllCellVisible) && !isAllCellVisible) ||
+        (isArray(isAllCellVisible) &&
+          isAllCellVisible.every((visibility) => visibility === false)) ||
+        isHidden
+      ) {
+        columnData.isHidden = true;
+        hiddenColumns.push(columnData);
+      } else {
+        totalColumnWidth += columnData.width;
+        columns.push(columnData);
+      }
+    });
+  }
+
+  const lastColumnIndex = columns.length - 1;
+  if (totalColumnWidth < componentWidth) {
+    /*
+      This "if" block is responsible for upsizing the last column width
+      if there is space left in the table container towards the right
+    */
+    if (columns[lastColumnIndex]) {
+      const lastColumnWidth =
+        columns[lastColumnIndex].width || DEFAULT_COLUMN_WIDTH;
+      const remainingWidth = componentWidth - totalColumnWidth;
+      // Adding the remaining width i.e. space left towards the right, to the last column width
+      columns[lastColumnIndex].width = lastColumnWidth + remainingWidth;
+    }
+  } else if (totalColumnWidth > componentWidth) {
+    /*
+      This "else-if" block is responsible for downsizing the last column width
+      if the last column spills over resulting in horizontal scroll
+    */
+    const extraWidth = totalColumnWidth - componentWidth;
+    const lastColWidth = columns[lastColumnIndex].width || DEFAULT_COLUMN_WIDTH;
+    /*
+      Below if condition explanation:
+      Condition 1: (lastColWidth > COLUMN_MIN_WIDTH)
+        We will downsize the last column only if its greater than COLUMN_MIN_WIDTH
+      Condition 2: (extraWidth < lastColWidth)
+        This condition checks whether the last column is the only column that is spilling over.
+        If more than one columns are spilling over we won't downsize the last column
+    */
+    if (lastColWidth > COLUMN_MIN_WIDTH && extraWidth < lastColWidth) {
+      const availableWidthForLastColumn = lastColWidth - extraWidth;
+      /*
+        Below we are making sure last column width doesn't go lower than COLUMN_MIN_WIDTH again
+        as availableWidthForLastColumn might go lower than COLUMN_MIN_WIDTH in some cases
+      */
+      columns[lastColumnIndex].width =
+        availableWidthForLastColumn < COLUMN_MIN_WIDTH
+          ? COLUMN_MIN_WIDTH
+          : availableWidthForLastColumn;
+    }
+  }
+
+  if (hiddenColumns.length && renderMode === RenderModes.CANVAS) {
+    // Get the index of the first column that is frozen to right
+    const rightFrozenColumnIdx = findIndex(
+      columns,
+      (col) => col.sticky === StickyType.RIGHT,
+    );
+    if (rightFrozenColumnIdx !== -1) {
+      columns.splice(rightFrozenColumnIdx, 0, ...hiddenColumns);
+    } else {
+      columns = columns.concat(hiddenColumns);
+    }
+  }
+
+  return columns.filter((column: ReactTableColumnProps) => !!column.id);
+};
+const memoisedGetColumns = memoizeOne(
+  getColumnsPureFn,
+  (prev: Array<any>, next: Array<any>) => {
+    const [prevRenderCell, ...prevPropsRest] = prev;
+    const [nextRenderCell, ...nextPropsRest] = next;
+    if (!shallowEqual(prevPropsRest, nextPropsRest)) return false;
+    const isEqual =
+      JSON.stringify(prevRenderCell) === JSON.stringify(nextRenderCell);
+    return isEqual;
+  },
 );
 
 const transformDataPureFn = (tableData, columns, editableCell) => {
@@ -325,124 +460,23 @@ class TableWidgetV2 extends BaseWidget<TableWidgetProps, WidgetState> {
    * based on columnType
    */
   getTableColumns = () => {
-    const { columnWidthMap = {}, orderedTableColumns = [] } = this.props;
-    let columns: ReactTableColumnProps[] = [];
-    const hiddenColumns: ReactTableColumnProps[] = [];
-
+    const {
+      columnWidthMap,
+      orderedTableColumns,
+      primaryColumns,
+      renderMode,
+      widgetId,
+    } = this.props;
     const { componentWidth } = this.getPaddingAdjustedDimensions();
-    let totalColumnWidth = 0;
-
-    if (isArray(orderedTableColumns)) {
-      orderedTableColumns.forEach((column: any) => {
-        const isHidden = !column.isVisible;
-
-        const columnData = {
-          id: column.id,
-          Header:
-            column.hasOwnProperty("label") && typeof column.label === "string"
-              ? column.label
-              : DEFAULT_COLUMN_NAME,
-          alias: column.alias,
-          accessor: (row: any) => row[column.alias],
-          width: columnWidthMap[column.id] || DEFAULT_COLUMN_WIDTH,
-          minWidth: COLUMN_MIN_WIDTH,
-          draggable: true,
-          isHidden: false,
-          isAscOrder: column.isAscOrder,
-          isDerived: column.isDerived,
-          sticky: fetchSticky(
-            column.id,
-            this.props.primaryColumns,
-            this.props.renderMode,
-            this.props.widgetId,
-          ),
-          metaProperties: {
-            isHidden: isHidden,
-            type: column.columnType,
-            format: column.outputFormat || "",
-            inputFormat: column.inputFormat || "",
-          },
-          columnProperties: column,
-          Cell: this.renderCell,
-        };
-
-        const isAllCellVisible: boolean | boolean[] = column.isCellVisible;
-
-        /*
-         * If all cells are not visible or column itself is not visible,
-         * set isHidden and push it to hiddenColumns array else columns array
-         */
-        if (
-          (isBoolean(isAllCellVisible) && !isAllCellVisible) ||
-          (isArray(isAllCellVisible) &&
-            isAllCellVisible.every((visibility) => visibility === false)) ||
-          isHidden
-        ) {
-          columnData.isHidden = true;
-          hiddenColumns.push(columnData);
-        } else {
-          totalColumnWidth += columnData.width;
-          columns.push(columnData);
-        }
-      });
-    }
-
-    const lastColumnIndex = columns.length - 1;
-    if (totalColumnWidth < componentWidth) {
-      /*
-        This "if" block is responsible for upsizing the last column width
-        if there is space left in the table container towards the right
-      */
-      if (columns[lastColumnIndex]) {
-        const lastColumnWidth =
-          columns[lastColumnIndex].width || DEFAULT_COLUMN_WIDTH;
-        const remainingWidth = componentWidth - totalColumnWidth;
-        // Adding the remaining width i.e. space left towards the right, to the last column width
-        columns[lastColumnIndex].width = lastColumnWidth + remainingWidth;
-      }
-    } else if (totalColumnWidth > componentWidth) {
-      /*
-        This "else-if" block is responsible for downsizing the last column width
-        if the last column spills over resulting in horizontal scroll
-      */
-      const extraWidth = totalColumnWidth - componentWidth;
-      const lastColWidth =
-        columns[lastColumnIndex].width || DEFAULT_COLUMN_WIDTH;
-      /*
-        Below if condition explanation:
-        Condition 1: (lastColWidth > COLUMN_MIN_WIDTH)
-          We will downsize the last column only if its greater than COLUMN_MIN_WIDTH
-        Condition 2: (extraWidth < lastColWidth)
-          This condition checks whether the last column is the only column that is spilling over.
-          If more than one columns are spilling over we won't downsize the last column
-      */
-      if (lastColWidth > COLUMN_MIN_WIDTH && extraWidth < lastColWidth) {
-        const availableWidthForLastColumn = lastColWidth - extraWidth;
-        /*
-          Below we are making sure last column width doesn't go lower than COLUMN_MIN_WIDTH again
-          as availableWidthForLastColumn might go lower than COLUMN_MIN_WIDTH in some cases
-        */
-        columns[lastColumnIndex].width =
-          availableWidthForLastColumn < COLUMN_MIN_WIDTH
-            ? COLUMN_MIN_WIDTH
-            : availableWidthForLastColumn;
-      }
-    }
-
-    if (hiddenColumns.length && this.props.renderMode === RenderModes.CANVAS) {
-      // Get the index of the first column that is frozen to right
-      const rightFrozenColumnIdx = findIndex(
-        columns,
-        (col) => col.sticky === StickyType.RIGHT,
-      );
-      if (rightFrozenColumnIdx !== -1) {
-        columns.splice(rightFrozenColumnIdx, 0, ...hiddenColumns);
-      } else {
-        columns = columns.concat(hiddenColumns);
-      }
-    }
-
-    return columns.filter((column: ReactTableColumnProps) => !!column.id);
+    return memoisedGetColumns(
+      this.renderCell,
+      columnWidthMap,
+      orderedTableColumns,
+      componentWidth,
+      primaryColumns,
+      renderMode,
+      widgetId,
+    );
   };
 
   transformData = (
