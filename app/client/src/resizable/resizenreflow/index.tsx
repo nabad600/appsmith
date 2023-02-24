@@ -59,21 +59,20 @@ export const ResizeWrapper = styled(animated.div)<{
       pointer-events: ${(props) => !props.$prevents && "none"};
     }
   }
+  border-radius: 0px 4px 4px 4px;
+  border: ${resizeBorder}px solid;
+  padding: ${resizeBorderPadding}px;
+  outline: ${resizeOutline}px solid !important;
+  outline-offset: 1px;
   ${(props) => {
     if (props.showBoundaries) {
       return `
-      box-shadow: 0px 0px 0px ${resizeBoxShadow}px ${
+        box-shadow: 0px 0px 0px ${resizeBoxShadow}px ${
         props.isHovered ? Colors.WATUSI : "#f86a2b"
       };
-      border-radius: 0px 4px 4px 4px;
-      border: ${resizeBorder}px solid ${Colors.GREY_1};
-      padding: ${resizeBorderPadding}px;
-      outline: ${resizeOutline}px solid ${Colors.GREY_1} !important;
-      outline-offset: 1px;`;
-    } else {
-      return `
-        border: 0px solid transparent;
-      `;
+        outline-color: ${Colors.GREY_1} !important;
+        border-color: ${Colors.GREY_1};
+        `;
     }
   }}}
 `;
@@ -622,15 +621,14 @@ export function ReflowResizable(props: ResizableProps) {
       />
     );
   });
-  const bufferForBoundary = props.showResizeBoundary ? RESIZE_BORDER_BUFFER : 0;
   const widgetWidth =
     (reflowedPosition?.width === undefined
       ? newDimensions.width
-      : reflowedPosition.width - 2 * WIDGET_PADDING) + bufferForBoundary;
+      : reflowedPosition.width - 2 * WIDGET_PADDING) + RESIZE_BORDER_BUFFER;
   const widgetHeight =
     (reflowedPosition?.height === undefined
       ? newDimensions.height
-      : reflowedPosition.height - 2 * WIDGET_PADDING) + bufferForBoundary;
+      : reflowedPosition.height - 2 * WIDGET_PADDING) + RESIZE_BORDER_BUFFER;
   return (
     <Spring
       config={{
@@ -668,8 +666,8 @@ export function ReflowResizable(props: ResizableProps) {
           (props.maxDynamicHeight || WidgetHeightLimits.MAX_HEIGHT_IN_ROWS) *
           GridDefaults.DEFAULT_GRID_ROW_HEIGHT,
         transform: `translate3d(${newDimensions.x -
-          bufferForBoundary / 2}px,${newDimensions.y -
-          bufferForBoundary / 2}px,0)`,
+          RESIZE_BORDER_BUFFER / 2}px,${newDimensions.y -
+          RESIZE_BORDER_BUFFER / 2}px,0)`,
       }}
     >
       {(_props) => (
