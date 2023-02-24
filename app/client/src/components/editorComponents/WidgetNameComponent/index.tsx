@@ -40,6 +40,8 @@ const PositionStyle = styled.div<{
   isSnipingMode: boolean;
 }>`
   height: ${(props) => props.theme.spaces[10]}px;
+  position: absolute;
+  top: ${(props) => `${-1 * props.theme.spaces[10] + 1}px`};
   ${(props) => (props.isSnipingMode ? "left: -7px" : "left: 0px")};
   display: flex;
   cursor: pointer;
@@ -68,7 +70,7 @@ type WidgetNameComponentProps = {
   errorCount: number;
   isFlexChild: boolean;
   widgetProps: any;
-  children: any;
+  content: React.ReactNode;
 };
 
 export function WidgetNameComponent(props: WidgetNameComponentProps) {
@@ -251,7 +253,10 @@ export function WidgetNameComponent(props: WidgetNameComponentProps) {
   const widgetWidth =
     (props.widgetProps.rightColumn - props.widgetProps.leftColumn) *
     props.widgetProps.parentColumnSpace;
-  return (
+  const renderAsPopper =
+    !props.widgetProps.detachFromLayout && props.widgetProps.topRow < 2;
+
+  return renderAsPopper ? (
     <Popover2
       autoFocus={false}
       content={
@@ -302,12 +307,40 @@ export function WidgetNameComponent(props: WidgetNameComponentProps) {
       }}
       placement="top-start"
       popoverClassName="widget-name-popper"
-      portalContainer={document.getElementById("widgets-editor") || undefined}
+      portalContainer={
+        !props.widgetProps.detachFromLayout
+          ? document.getElementById("widgets-editor") || undefined
+          : undefined
+      }
       targetTagName="div"
       usePortal
     >
-      {props.children}
+      {props.content}
     </Popover2>
+  ) : (
+    <>
+      {showWidgetName ? (
+        <PositionStyle
+          className={isSnipingMode ? "t--settings-sniping-control" : ""}
+          data-testid="t--settings-controls-positioned-wrapper"
+          draggable={allowDrag}
+          id={"widget_name_" + props.widgetId}
+          isSnipingMode={isSnipingMode}
+          onDragStart={onDragStart}
+        >
+          <ControlGroup>
+            <SettingsControl
+              activity={currentActivity}
+              errorCount={shouldHideErrors ? 0 : props.errorCount}
+              name={props.widgetName}
+              toggleSettings={togglePropertyEditor}
+              widgetWidth={widgetWidth}
+            />
+          </ControlGroup>
+        </PositionStyle>
+      ) : null}
+      {props.content}
+    </>
   );
 }
 
