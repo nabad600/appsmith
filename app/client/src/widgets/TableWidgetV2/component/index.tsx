@@ -13,7 +13,6 @@ import { EventType } from "constants/AppsmithActionConstants/ActionConstants";
 import equal from "fast-deep-equal/es6";
 import { ColumnTypes, EditableCell, TableVariant } from "../constants";
 import { useCallback } from "react";
-
 export interface ColumnMenuOptionProps {
   content: string | JSX.Element;
   closeOnClick?: boolean;
@@ -174,6 +173,8 @@ function ReactTableComponent(props: ReactTableComponentProps) {
   }, [columns]);
 
   useEffect(() => {
+    //useEffect shouldn't be used like this to change props
+    //useMemo
     let dragged = -1;
     const leftOrder: string[] = [];
     const rightOrder: string[] = [];
@@ -420,12 +421,13 @@ export default React.memo(ReactTableComponent, (prev, next) => {
     prev.borderWidth === next.borderWidth &&
     prev.borderColor === next.borderColor &&
     prev.accentColor === next.accentColor &&
+    //shallow equal possible
     equal(prev.columnWidthMap, next.columnWidthMap) &&
     //static reference
     prev.tableData === next.tableData &&
     // Using JSON stringify becuase isEqual doesnt work with functions,
     // and we are not changing the columns manually.
-    JSON.stringify(prev.columns) === JSON.stringify(next.columns) &&
+    prev.columns === next.columns &&
     equal(prev.editableCell, next.editableCell) &&
     prev.variant === next.variant &&
     prev.primaryColumnId === next.primaryColumnId &&

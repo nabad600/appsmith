@@ -245,16 +245,14 @@ export function Table(props: TableProps) {
     props.handleResizeColumn(columnWidthMap);
   };
   const data = props.data;
-  const columnString = JSON.stringify(
-    pick(props, ["columns", "compactMode", "columnWidthMap"]),
-  );
-  const columns = React.useMemo(() => props.columns, [columnString]);
+
+  const columns = props.columns;
   const tableHeadercolumns = React.useMemo(
     () =>
       props.columns.filter((column: ReactTableColumnProps) => {
         return column.alias !== "actions";
       }),
-    [columnString],
+    [columns],
   );
   /*
     For serverSidePaginationEnabled we are taking props.data.length as the page size.
@@ -303,6 +301,7 @@ export function Table(props: TableProps) {
   } else {
     // We are updating column size since the drag is complete when we are changing value of isResizing from true to false
     if (isResizingColumn.current) {
+      //clear timeout logic
       //update isResizingColumn in next event loop so that dragEnd event does not trigger click event.
       setTimeout(function() {
         isResizingColumn.current = false;
@@ -409,6 +408,7 @@ export function Table(props: TableProps) {
       </>
     ),
     [
+      //this does not do anything
       areEqual,
       columns,
       props.multiRowSelection,

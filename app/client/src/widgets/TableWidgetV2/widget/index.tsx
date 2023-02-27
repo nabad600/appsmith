@@ -112,6 +112,8 @@ const ReactTableComponent = lazy(() =>
   retryPromise(() => import("../component")),
 );
 
+const emptyArr = [];
+
 const getColumnsPureFn = (
   //frequent rerender
   renderCell,
@@ -234,19 +236,9 @@ const getColumnsPureFn = (
 
   return columns.filter((column: ReactTableColumnProps) => !!column.id);
 };
-const memoisedGetColumns = memoizeOne(
-  getColumnsPureFn,
-  (prev: Array<any>, next: Array<any>) => {
-    const [prevRenderCell, ...prevPropsRest] = prev;
-    const [nextRenderCell, ...nextPropsRest] = next;
-    if (!shallowEqual(prevPropsRest, nextPropsRest)) return false;
-    const isEqual =
-      JSON.stringify(prevRenderCell) === JSON.stringify(nextRenderCell);
-    return isEqual;
-  },
-);
+const memoisedGetColumns = memoizeOne(getColumnsPureFn, shallowEqual);
 
-const transformDataPureFn = (tableData, columns, editableCell) => {
+const transformDataPureFn = (editableCell, tableData, columns) => {
   if (isArray(tableData)) {
     return tableData.map((row, rowIndex) => {
       const newRow: { [key: string]: any } = {};
@@ -348,13 +340,10 @@ const transformDataPureFn = (tableData, columns, editableCell) => {
 const memoizedTransformData = memoizeOne(
   transformDataPureFn,
   (prev: Array<any>, next: Array<any>) => {
-    const [prevTableData, prevColumns, prevCellEditable] = prev;
-    const [nextTableData, nextColumns, nextCellEditable] = next;
-
-    if (prevTableData !== nextTableData) return false;
-    if (!equal(prevCellEditable, nextCellEditable)) return false;
-    if (!equal(prevColumns, nextColumns)) return false;
-    return true;
+    const [prevCellEditable, ...prevRest] = prev;
+    const [nextCellEditable, ...nextRest] = next;
+    if (!shallowEqual(prevCellEditable, nextCellEditable)) return false;
+    return shallowEqual(nextRest, prevRest);
   },
 );
 
@@ -483,15 +472,7 @@ class TableWidgetV2 extends BaseWidget<TableWidgetProps, WidgetState> {
     tableData: Array<Record<string, unknown>>,
     columns: ReactTableColumnProps[],
   ) => {
-    const basicColumnProperties = columns.map((c) => ({
-      alias: c.alias,
-      metaProperties: c.metaProperties,
-    }));
-    return memoizedTransformData(
-      tableData,
-      basicColumnProperties,
-      this.props.editableCell,
-    );
+    return memoizedTransformData(this.props.editableCell, tableData, columns);
   };
 
   updateDerivedColumnsIndex = (
@@ -748,6 +729,8 @@ class TableWidgetV2 extends BaseWidget<TableWidgetProps, WidgetState> {
         );
       }
     }
+
+    //very expensive operation but time wise it is not expensive..perhaps the comparator does a reference check before doing a deep equal
     // Check if tableData is modifed
     const isTableDataModified = !equal(
       this.props.tableData,
@@ -997,7 +980,7 @@ class TableWidgetV2 extends BaseWidget<TableWidgetProps, WidgetState> {
       isVisiblePagination,
       isVisibleSearch,
     } = this.props;
-    const tableColumns = this.getTableColumns() || [];
+    const tableColumns = this.getTableColumns() || emptyArr;
     const transformedData = this.transformData(filteredTableData, tableColumns);
     const isVisibleHeaderOptions =
       isVisibleDownload ||
