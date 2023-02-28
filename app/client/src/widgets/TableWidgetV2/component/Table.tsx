@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef } from "react";
-import { pick, reduce } from "lodash";
+import { reduce } from "lodash";
 import {
   useTable,
   usePagination,
@@ -60,7 +60,6 @@ const PopoverStyles = createGlobalStyle<{
       }
     }   
 `;
-import useTraceUpdate from "use-trace-update";
 interface TableProps {
   width: number;
   height: number;
@@ -226,6 +225,7 @@ const HeaderComponent = (props: HeaderComponentProps) => {
   );
 };
 
+const emptyArr: any = [];
 export function Table(props: TableProps) {
   const isResizingColumn = React.useRef(false);
   const handleResizeColumn = (columnWidths: Record<string, number>) => {
@@ -260,7 +260,6 @@ export function Table(props: TableProps) {
     it will not give the correct count of records in the current page when query limit
     is set higher/lower than the visible number of rows in the table
   */
-  useTraceUpdate({ data: props.data, columns: props.columns });
   const pageCount =
     props.serverSidePaginationEnabled &&
     props.totalRecordsCount &&
@@ -315,8 +314,12 @@ export function Table(props: TableProps) {
     startIndex = 0;
     endIndex = props.data.length;
   }
-  const subPage = page.slice(startIndex, endIndex);
-  const selectedRowIndices = props.selectedRowIndices || [];
+  const subPage = useMemo(() => page.slice(startIndex, endIndex), [
+    page,
+    startIndex,
+    endIndex,
+  ]);
+  const selectedRowIndices = props.selectedRowIndices || emptyArr;
   const tableSizes = TABLE_SIZES[props.compactMode || CompactModeTypes.DEFAULT];
   const tableWrapperRef = useRef<HTMLDivElement | null>(null);
   const tableBodyRef = useRef<HTMLDivElement | null>(null);
@@ -362,11 +365,14 @@ export function Table(props: TableProps) {
     };
   }, [isHeaderVisible, props.height, tableSizes.TABLE_HEADER_HEIGHT]);
 
-  const shouldUseVirtual =
-    props.serverSidePaginationEnabled &&
-    !props.columns.some(
-      (column) => !!column.columnProperties.allowCellWrapping,
-    );
+  const shouldUseVirtual = useMemo(
+    () =>
+      props.serverSidePaginationEnabled &&
+      !props.columns.some(
+        (column) => !!column.columnProperties.allowCellWrapping,
+      ),
+    [props.serverSidePaginationEnabled, props.columns],
+  );
 
   useEffect(() => {
     if (props.isAddRowInProgress && tableBodyRef) {

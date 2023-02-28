@@ -112,14 +112,14 @@ const ReactTableComponent = lazy(() =>
   retryPromise(() => import("../component")),
 );
 
-const emptyArr = [];
+const emptyArr: any = [];
 
 const getColumnsPureFn = (
   //frequent rerender
   renderCell,
-  columnWidthMap = {},
+  columnWidthMap: { [key: string]: number } = {},
   orderedTableColumns = [],
-  componentWidth,
+  componentWidth: number,
   //not derived?
   primaryColumns,
   renderMode,
@@ -730,7 +730,6 @@ class TableWidgetV2 extends BaseWidget<TableWidgetProps, WidgetState> {
       }
     }
 
-    //very expensive operation but time wise it is not expensive..perhaps the comparator does a reference check before doing a deep equal
     // Check if tableData is modifed
     const isTableDataModified = !equal(
       this.props.tableData,

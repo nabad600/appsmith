@@ -40,7 +40,7 @@ const PageWrapper = styled.div`
     margin: 0 auto;
   }
 `;
-
+//deadcode
 export function TablePagination(props: PagerProps) {
   return (
     <PagerContainer className={"e-control e-pager e-lib"}>

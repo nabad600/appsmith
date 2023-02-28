@@ -212,7 +212,6 @@ export default {
   },
   //
   getOrderedTableColumns: (props, moment, _) => {
-    console.log("getOrderedTableColumns");
     let columns = [];
     let existingColumns = props.primaryColumns || {};
     /*
@@ -259,7 +258,6 @@ export default {
   //
   getFilteredTableData: (props, moment, _) => {
     /* Make a shallow copy */
-    console.log("getFilteredTableData ");
     const primaryColumns = props.primaryColumns || {};
     let processedTableData = [...props.processedTableData];
     const derivedColumns = {};
