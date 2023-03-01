@@ -13,6 +13,7 @@ import { EventType } from "constants/AppsmithActionConstants/ActionConstants";
 import equal from "fast-deep-equal/es6";
 import { ColumnTypes, EditableCell, TableVariant } from "../constants";
 import { useCallback } from "react";
+
 export interface ColumnMenuOptionProps {
   content: string | JSX.Element;
   closeOnClick?: boolean;
@@ -293,27 +294,27 @@ function ReactTableComponent(props: ReactTableComponentProps) {
     }
   };
 
-  const selectTableRow = (row: {
-    original: Record<string, unknown>;
-    index: number;
-  }) => {
-    if (allowRowSelection) {
-      onRowClick(row.original, row.index);
-    }
-  };
-
-  const toggleAllRowSelect = (
-    isSelect: boolean,
-    pageData: Row<Record<string, unknown>>[],
-  ) => {
-    if (allowRowSelection) {
-      if (isSelect) {
-        selectAllRow(pageData);
-      } else {
-        unSelectAllRow(pageData);
+  const selectTableRow = useCallback(
+    (row: { original: Record<string, unknown>; index: number }) => {
+      if (allowRowSelection) {
+        onRowClick(row.original, row.index);
       }
-    }
-  };
+    },
+    [allowRowSelection, onRowClick],
+  );
+
+  const toggleAllRowSelect = useCallback(
+    (isSelect: boolean, pageData: Row<Record<string, unknown>>[]) => {
+      if (allowRowSelection) {
+        if (isSelect) {
+          selectAllRow(pageData);
+        } else {
+          unSelectAllRow(pageData);
+        }
+      }
+    },
+    [allowRowSelection, selectAllRow, unSelectAllRow],
+  );
 
   const memoziedDisableDrag = useCallback(() => disableDrag(true), [
     disableDrag,
