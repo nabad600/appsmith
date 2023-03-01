@@ -3,7 +3,6 @@ import styled from "styled-components";
 import { NumericInput, Keys } from "@blueprintjs/core";
 import { EventType } from "constants/AppsmithActionConstants/ActionConstants";
 import { lightenColor } from "widgets/WidgetUtils";
-import shallowEqual from "shallowequal";
 
 const PageNumberInputWrapper = styled(NumericInput)<{
   borderRadius: string;
@@ -110,7 +109,4 @@ function PageNumberInputComponent(props: {
     />
   );
 }
-export const PageNumberInput = React.memo(
-  PageNumberInputComponent,
-  shallowEqual,
-);
+export const PageNumberInput = React.memo(PageNumberInputComponent);

@@ -7,7 +7,6 @@ import { ReactComponent as DownloadIcon } from "assets/icons/control/download-da
 import { ReactComponent as AddIcon } from "assets/icons/control/add.svg";
 import Tooltip from "components/editorComponents/Tooltip";
 import { TooltipContentWrapper } from "../../TableStyledWrappers";
-import shallowEqual from "shallowequal";
 
 export const TableIconWrapper = styled.div<{
   selected?: boolean;
@@ -118,4 +117,4 @@ function ActionItem(props: ActionItemProps) {
   }
 }
 
-export default React.memo(ActionItem, shallowEqual);
+export default React.memo(ActionItem);

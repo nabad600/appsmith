@@ -23,6 +23,7 @@ import _, {
 
 import BaseWidget, { WidgetState } from "widgets/BaseWidget";
 import {
+  RenderMode,
   RenderModes,
   WidgetType,
   WIDGET_PADDING,
@@ -115,15 +116,13 @@ const ReactTableComponent = lazy(() =>
 const emptyArr: any = [];
 
 const getColumnsPureFn = (
-  //frequent rerender
-  renderCell,
+  renderCell: any,
   columnWidthMap: { [key: string]: number } = {},
   orderedTableColumns = [],
   componentWidth: number,
-  //not derived?
-  primaryColumns,
-  renderMode,
-  widgetId,
+  primaryColumns: Record<string, ColumnProperties>,
+  renderMode: RenderMode,
+  widgetId: string,
 ) => {
   let columns: ReactTableColumnProps[] = [];
   const hiddenColumns: ReactTableColumnProps[] = [];
@@ -238,7 +237,11 @@ const getColumnsPureFn = (
 };
 const memoisedGetColumns = memoizeOne(getColumnsPureFn, shallowEqual);
 
-const transformDataPureFn = (editableCell, tableData, columns) => {
+const transformDataPureFn = (
+  editableCell: EditableCell | undefined,
+  tableData: Array<Record<string, unknown>>,
+  columns: ReactTableColumnProps[],
+) => {
   if (isArray(tableData)) {
     return tableData.map((row, rowIndex) => {
       const newRow: { [key: string]: any } = {};

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { reduce } from "lodash";
 import {
   useTable,
@@ -338,15 +338,16 @@ export function Table(props: TableProps) {
       selectedRowCount === 0 ? 0 : selectedRowCount === page.length ? 1 : 2;
     return result;
   }, [selectedRowIndices, page]);
-  const handleAllRowSelectClick = (
-    e: React.MouseEvent<HTMLDivElement, MouseEvent>,
-  ) => {
-    // if all / some rows are selected we remove selection on click
-    // else select all rows
-    props.toggleAllRowSelect(!Boolean(rowSelectionState), page);
-    // loop over subPage rows and toggleRowSelected if required
-    e.stopPropagation();
-  };
+  const handleAllRowSelectClick = useCallback(
+    (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+      // if all / some rows are selected we remove selection on click
+      // else select all rows
+      props.toggleAllRowSelect(!Boolean(rowSelectionState), page);
+      // loop over subPage rows and toggleRowSelected if required
+      e.stopPropagation();
+    },
+    [page, props.toggleAllRowSelect],
+  );
   const isHeaderVisible =
     props.isVisibleSearch ||
     props.isVisibleFilters ||

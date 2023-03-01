@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useMemo } from "react";
+import React, { useEffect, useCallback } from "react";
 import styled from "styled-components";
 import { Classes } from "@blueprintjs/core";
 import { Colors } from "constants/Colors";
