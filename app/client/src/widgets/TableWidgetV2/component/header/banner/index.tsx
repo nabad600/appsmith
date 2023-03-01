@@ -1,5 +1,4 @@
 import React from "react";
-import shallowEqual from "shallowequal";
 import { AddNewRowBanner, AddNewRowBannerType } from "./AddNewRowBanner";
 
 export interface BannerPropType extends AddNewRowBannerType {
@@ -17,4 +16,4 @@ function BannerComponent(props: BannerPropType) {
     />
   ) : null;
 }
-export const Banner = React.memo(BannerComponent, shallowEqual);
+export const Banner = React.memo(BannerComponent);
