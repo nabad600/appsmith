@@ -100,7 +100,7 @@
         <dependency>
             <groupId>com.graphql-java</groupId>
             <artifactId>graphql-java</artifactId>
-            <version>19.0</version>
+            <version>19.11</version>
             <scope>provided</scope>
             <exclusions>
                 <exclusion>
@@ -134,7 +134,7 @@
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
-            <version>3.13.2</version>
+            <version>3.27.7</version>
             <scope>test</scope>
         </dependency>
 
